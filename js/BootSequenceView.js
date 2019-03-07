@@ -4,6 +4,8 @@ var parentDirectory = false;
 
 var devMode = true;
 var levelCreator = false;
+var parentDirectory = false;
+var secretDirectory = false;
 
 function BootSequenceView(delegate) {
 	this.delegate = delegate;
@@ -129,7 +131,15 @@ BootSequenceView.prototype.addCommandLine = function() {
 
 	var tilde = new LabelView();
 	tilde.textColor = "white";
-	tilde.text = "~  "
+	if (parentDirectory) {
+		tilde.font = "20px DOSFont";
+		tilde.text = "dir "
+	} else if (secretDirectory) {
+		tilde.font = "20px DOSFont";
+		tilde.text = "dir/secret "
+	} else {
+		tilde.text = "~  "
+	}
 	tilde.frame = {x: this.xOffset, y: this.yOffset, width: 0, height: 0};
 	this.container.addSubview(tilde);
 
@@ -219,7 +229,7 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 			this.removeSubview(this.levelCreatorView);
 			this.levelCreatorView = null;
 			var frame = {x: 0, y: 0, width: this.frame.width, height: this.frame.height};
-			var levelCreatorView = new LevelCreatorView(frame);
+			var levelCreatorView = new LevelCreatorView(frame, this);
 			levelCreatorView.backgroundColor = this.backgroundColor;
 			levelCreatorView.backgroundColor = "#272822";
 			this.addSubview(levelCreatorView);
@@ -271,15 +281,15 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 		return;
 	}
 
-	if (levelCreator && event.keyCode == 49) {
-		var frame = {x: 0, y: 0, width: this.frame.width, height: this.frame.height};
-		var levelCreatorView = new LevelCreatorView(frame);
-		levelCreatorView.backgroundColor = this.backgroundColor;
-		levelCreatorView.backgroundColor = "#272822";
-		this.addSubview(levelCreatorView);
-		this.levelCreatorView = levelCreatorView;
-		return;
-	}
+	// if (levelCreator && event.keyCode == 49) {
+	// 	var frame = {x: 0, y: 0, width: this.frame.width, height: this.frame.height};
+	// 	var levelCreatorView = new LevelCreatorView(frame);
+	// 	levelCreatorView.backgroundColor = this.backgroundColor;
+	// 	levelCreatorView.backgroundColor = "#272822";
+	// 	this.addSubview(levelCreatorView);
+	// 	this.levelCreatorView = levelCreatorView;
+	// 	return;
+	// }
 
 	if (this.eventCodeIsInput()) {
 		this.insertKey(event.key);
@@ -363,7 +373,7 @@ BootSequenceView.prototype.insertCommand = function(command) {
 
 BootSequenceView.prototype.eventCodeIsInput = function(code) {
 	// numbers, letters, space, period, underscore
-	return (event.keyCode >= 48 && event.keyCode <= 57) || (event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode == 32 || event.keyCode == 190 || event.keyCode == 189;
+	return (event.keyCode >= 48 && event.keyCode <= 57) || (event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode == 32 || event.keyCode == 190 || event.keyCode == 189 || event.keyCode == 191;
 }
 
 BootSequenceView.prototype.enterCommand = function(command) {
@@ -372,7 +382,9 @@ BootSequenceView.prototype.enterCommand = function(command) {
 	this.commands.push(command);
 	this.commandIndex = this.commands.length;
 
-	if (command === "ls") {
+	if (command.startsWith("cd ") || command === "cd") {
+		this.navigate(command);
+	} else if (command === "ls") {
 		this.printUnlockedFiles();
 	} else if (command === "help") {
 		this.printHelp();
@@ -385,17 +397,79 @@ BootSequenceView.prototype.enterCommand = function(command) {
 	}
 }
 
-BootSequenceView.prototype.printUnlockedFiles = function() {
+BootSequenceView.prototype.navigate = function(command) {
+	var path = command.substring(3).trim().toLowerCase();
+
 	this.yOffset += 40;
 
-	var fileNames = this.unlockedFiles();
+	if (!parentDirectory) {
+		if (path === "..") {
+			parentDirectory = true;
+			secretDirectory = false;
+		} else if (path === "../home") {
+			parentDirectory = false;
+			secretDirectory = false;
+		} else if (path === "../secret") {
+			parentDirectory = false;
+			secretDirectory = true;
+		}
+		this.addCommandLine();
+		return;
+	}
+
+	if (parentDirectory) {
+		if (path === "secret") {
+			parentDirectory = false;
+			secretDirectory = true;
+			this.addCommandLine();
+			return;
+		} else if (path === "home") {
+			parentDirectory = false;
+			this.addCommandLine();
+			return;
+		}
+	}
 
 	var filesLabel = new LabelView();
 	filesLabel.lineWrap = true;
 	filesLabel.lineHeight = 30;
 	filesLabel.textColor = "white";
 	filesLabel.font = "20px DOSFont";
-	filesLabel.text = fileNames.join('   ');
+	filesLabel.text = "Access Denied";
+	filesLabel.frame = {x: 0, y: this.yOffset, width: 700, height: 0};
+	this.container.addSubview(filesLabel);
+
+	this.yOffset += filesLabel.height() + 20;
+
+	this.addCommandLine();
+}
+
+BootSequenceView.prototype.printUnlockedFiles = function() {
+	this.yOffset += 40;
+
+	var text;
+	if (parentDirectory) {
+		text = "home   secret";
+	} else if (secretDirectory) {
+		text = "level_creator";
+		var customFiles = localStorage.getItem("custom_levels");
+		if (customFiles) {
+			customFiles = JSON.parse(customFiles);
+			for (var i = 0; i < customFiles.length; i++) {
+				text += "   custom_level_" + (i + 1);
+			}
+		}
+	} else {
+		var fileNames = this.unlockedFiles();
+		text = fileNames.join('   ');
+	}
+
+	var filesLabel = new LabelView();
+	filesLabel.lineWrap = true;
+	filesLabel.lineHeight = 30;
+	filesLabel.textColor = "white";
+	filesLabel.font = "20px DOSFont";
+	filesLabel.text = text;
 	filesLabel.frame = {x: 0, y: this.yOffset, width: 700, height: 0};
 	this.container.addSubview(filesLabel);
 
@@ -433,7 +507,7 @@ BootSequenceView.prototype.lessFile = function(command) {
 			break;
 		}
 	}
-	if (!fileToOpen) {
+	if (!fileToOpen || parentDirectory || secretDirectory) {
 		this.yOffset += 40;
 
 		var unrecognizedCommandLabel = new LabelView();
@@ -517,14 +591,50 @@ BootSequenceView.prototype.lessUnlockedFile = function(fileToOpen) {
 
 BootSequenceView.prototype.runFile = function(command) {
 	var fileName = command.substring(4, command.length).trim().toLowerCase();
+
 	var fileToOpen;
-	for (var i = 0; i < kFiles.length; i++) {
-		var file = kFiles[i];
-		if (file.name.toLowerCase() === fileName) {
-			fileToOpen = file;
-			break;
+
+	if (secretDirectory) {
+		if (fileName === "level_creator") {
+			
+			var frame = {x: 0, y: 0, width: this.frame.width, height: this.frame.height};
+			var levelCreatorView = new LevelCreatorView(frame, this);
+			levelCreatorView.backgroundColor = this.backgroundColor;
+			levelCreatorView.backgroundColor = "#272822";
+			this.addSubview(levelCreatorView);
+			this.levelCreatorView = levelCreatorView;
+
+			this.yOffset += 40;
+			this.addCommandLine();
+			return;
+		} else if (fileName.startsWith("custom_level_")) {
+			var number = fileName.substring(13);
+			number = parseInt(number, 10) - 1;
+			if (!isNaN(number)) {
+				var customFiles = localStorage.getItem("custom_levels");
+				if (!customFiles) {
+					customFiles = new Array();
+				} else {
+					customFiles = JSON.parse(customFiles);
+				}
+				if (number >= 0 && number < customFiles.length) {
+					fileToOpen = JSON.parse(customFiles[number]);
+					fileToOpen.type = "game";
+					fileToOpen.name = "custom_level_" + number;
+				}
+			}
+		}
+
+	} else {
+		for (var i = 0; i < kFiles.length; i++) {
+			var file = kFiles[i];
+			if (file.name.toLowerCase() === fileName) {
+				fileToOpen = file;
+				break;
+			}
 		}
 	}
+
 	if (!fileToOpen) {
 		this.yOffset += 40;
 

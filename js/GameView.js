@@ -15,6 +15,9 @@ function GameView(file, frame) {
 	this.currentTime = 0;
 	this.file = file;
 	this.gameData = kGameData[file.name.toLowerCase()];
+	if (!this.gameData) {
+		this.gameData = file;
+	}
 	this.frame = frame;
 
 	this.vineManager = new VineManager();

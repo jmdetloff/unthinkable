@@ -4,9 +4,10 @@ var levelCreatorIncrement = 20;
 
 // #ee4035 • #f37736 • #fdf498 • #7bc043 • #0392cf
 
-function LevelCreatorView(frame) {
+function LevelCreatorView(frame, delegate) {
 	this.frame = frame;
 	this.nodeViews = new Array();
+	this.delegate = delegate;
 
 	var levelCreatorView = this;
 	this.onClick = function(x, y) {
@@ -165,5 +166,15 @@ LevelCreatorView.prototype.exportLevel = function() {
 		}
 		level.nodes.push(node);
 	}
-	console.log(JSON.stringify(level));
+	var customLevels = localStorage.getItem("custom_levels");
+	if (!customLevels) {
+		customLevels = new Array();
+	} else {
+		customLevels = JSON.parse(customLevels);
+	}
+	customLevels.push(JSON.stringify(level));
+	localStorage.setItem("custom_levels", JSON.stringify(customLevels));
+
+	this.delegate.removeSubview(this);
+	this.delegate.levelCreatorView = null;
 }
