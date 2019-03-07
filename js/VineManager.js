@@ -5,6 +5,9 @@ function VineManager() {
 
 VineManager.prototype.vineNodeCaptured = function(node) {
 	var vine = this.vineForNode(node);
+	if (!vine) {
+		return;
+	}
 
 	var vineIndex = this.vines.indexOf(vine);
 	var nodeIndex = this.indexOfNode(vine, node);
@@ -120,7 +123,20 @@ VineManager.prototype.drawVineReachSegments = function(ctx, x, y) {
 		for (var j = 0; j < vine.path.length; j++) {
 			var pathSegment = vine.path[j];
 			if (pathSegment.type === "reach") {
-				this.drawReachVineSegment(ctx, x, y, pathSegment, "green");
+
+				if (vine.mutating) {
+					var percentHealthy = 0.5;
+					var red = (0 * percentHealthy + 255 * (1 - percentHealthy));
+					var green = (128 * percentHealthy + 255 * (1 - percentHealthy));
+					var blue = (0 * percentHealthy + 255 * (1 - percentHealthy));
+					this.drawReachVineSegment(ctx, x, y, pathSegment, "rgba(" + red + ", " + green + ", " + blue + ", 1)");
+				} else {
+					var percentHealthy = Math.min(1, vine.immunity / 75);
+					var red = (0 * percentHealthy + 153 * (1 - percentHealthy));
+					var green = (128 * percentHealthy + 102 * (1 - percentHealthy));
+					var blue = (0 * percentHealthy + 51 * (1 - percentHealthy));
+					this.drawReachVineSegment(ctx, x, y, pathSegment, "rgba(" + red + ", " + green + ", " + blue + ", 1)");
+				}
 			}
 		}
 	}
@@ -138,7 +154,20 @@ VineManager.prototype.drawVineNodeSegments = function(ctx, x, y, frame) {
 		for (var j = 0; j < vine.path.length; j++) {
 			var pathSegment = vine.path[j];
 			if (pathSegment.type === "node") {
-				this.drawNodeVineSegment(ctx, x, y, pathSegment, frame, vine.color);
+
+				if (vine.mutating) {
+					var percentHealthy = 0.5;
+					var red = (0 * percentHealthy + 255 * (1 - percentHealthy));
+					var green = (128 * percentHealthy + 255 * (1 - percentHealthy));
+					var blue = (0 * percentHealthy + 255 * (1 - percentHealthy));
+					this.drawNodeVineSegment(ctx, x, y, pathSegment, frame, "rgba(" + red + ", " + green + ", " + blue + ", 1)");
+				} else {
+					var percentHealthy = Math.min(1, vine.immunity / 75);
+					var red = (0 * percentHealthy + 153 * (1 - percentHealthy));
+					var green = (128 * percentHealthy + 102 * (1 - percentHealthy));
+					var blue = (0 * percentHealthy + 51 * (1 - percentHealthy));
+					this.drawNodeVineSegment(ctx, x, y, pathSegment, frame, "rgba(" + red + ", " + green + ", " + blue + ", 1)");
+				}
 			}
 		}
 	}
@@ -150,11 +179,18 @@ VineManager.prototype.drawVineNodeSegments = function(ctx, x, y, frame) {
 	}
 }
 
+function mixColor(color1, color2, percent) {
+  	var r = (color1.red() * percent + color2.red() * (1 - percent)) / 2;
+  	var g = (color1.green() * percent + color2.green() * (1 - percent)) / 2;
+  	var b = (color1.blue() * percent + color2.blue() * (1 - percent)) / 2;
+  	return Color().rgb([r, g, b]);  
+}
+
 VineManager.prototype.vinePopulation = function(vine) {
 	var pop = 0;
 	for (var j = 0; j < vine.path.length; j++) {
 		var pathSegment = vine.path[j];
-		if (pathSegment.type === "node") {
+		if (pathSegment.type === "node" && pathSegment.node.owner === "player") {
 			pop += pathSegment.node.workers.length;
 		}
 	}
@@ -179,20 +215,22 @@ VineManager.prototype.drawReachVineSegment = function(ctx, x, y, segment, color)
 	var startX = x + segment.leadPoint.x;
 	var startY =  y + segment.leadPoint.y;
 
-	var controlX = startX + segment.swivelDistance * (segment.vector.x / Math.sqrt(Math.pow(segment.vector.x, 2) + Math.pow(segment.vector.y, 2)));
-	var controlY = startY + segment.swivelDistance * (segment.vector.y / Math.sqrt(Math.pow(segment.vector.x, 2) + Math.pow(segment.vector.y, 2)));
+	var controlX = startX + segment.tinySwivelDistance * (segment.vector.x / Math.sqrt(Math.pow(segment.vector.x, 2) + Math.pow(segment.vector.y, 2)));
+	var controlY = startY + segment.tinySwivelDistance * (segment.vector.y / Math.sqrt(Math.pow(segment.vector.x, 2) + Math.pow(segment.vector.y, 2)));
 
 	var oppositeVector = {x: segment.vector.x, y: -1 * segment.vector.y};
 
-	var swivelMultiple = (segment.swivelPercent - 0.5) * 2;
-	var endX = controlX + swivelMultiple * segment.swivelDistance * (oppositeVector.x / Math.sqrt(Math.pow(oppositeVector.x, 2) + Math.pow(oppositeVector.y, 2)));
-	var endY = controlY + swivelMultiple * segment.swivelDistance * (oppositeVector.y / Math.sqrt(Math.pow(oppositeVector.x, 2) + Math.pow(oppositeVector.y, 2)));
+	var swivelMultiple = (segment.swivelPercent - 0.5) * 5;
+	var tinySwivelMultiple = (segment.tinySwivelPercent - 0.5) * 2;
+
+	var endX = controlX + tinySwivelMultiple * segment.tinySwivelDistance * (oppositeVector.x / Math.sqrt(Math.pow(oppositeVector.x, 2) + Math.pow(oppositeVector.y, 2)));
+	var endY = controlY + tinySwivelMultiple * segment.tinySwivelDistance * (oppositeVector.y / Math.sqrt(Math.pow(oppositeVector.x, 2) + Math.pow(oppositeVector.y, 2)));
 
 	ctx.beginPath();
 	ctx.moveTo(startX, startY);
 	ctx.quadraticCurveTo(controlX, controlY, endX, endY);
 
-	var otherSwivelMultiple = swivelMultiple * 2;
+	var otherSwivelMultiple = swivelMultiple;
 	
 	var midPoint = {x: segment.startPoint.x + (startX - segment.startPoint.x) / 2, y: segment.startPoint.y + (startY - segment.startPoint.y) / 2};
 	var otherControlX = midPoint.x + segment.swivelDistance * otherSwivelMultiple * (oppositeVector.x / Math.sqrt(Math.pow(oppositeVector.x , 2) + Math.pow(oppositeVector.y, 2)));
@@ -221,8 +259,8 @@ VineManager.prototype.drawNodeVineSegment = function(ctx, x, y, segment, frame, 
 	ctx.lineWidth = 3;
 	ctx.lineCap = "round";
 
-	var nodeX = x + segment.node.x * frame.width;
-	var nodeY = y + segment.node.y * frame.height;
+	var nodeX = x + segment.node.view.frame.x;
+	var nodeY = y + segment.node.view.frame.y;
 	var nodeCenterX = nodeX + segment.node.size / 2;
 	var nodeCenterY = nodeY + segment.node.size / 2;
 
@@ -348,6 +386,18 @@ VineManager.prototype.startReaching = function(vine, fromNode, toNode, currentTi
 	var toNodeEntry = {x: toNode.view.frame.x + kNodeEntryPoint.x * toNode.size, y: toNode.view.frame.y + kNodeEntryPoint.y * toNode.size};
 	var toNodeExit = {x: toNode.view.frame.x + kNodeExitPoint.x * toNode.size, y: toNode.view.frame.y + kNodeExitPoint.y * toNode.size};
 
+	for (var i = 0; i < this.vines.length; i++) {
+		var vine = this.vines[i];
+		for (var j = 0; j < vine.path.length; j++) {
+			var pathSegment = vine.path[j];
+			if (pathSegment.type === "reach" && !pathSegment.completed) {
+				if (pathSegment.toNode === toNode) {
+					return;
+				}
+			}
+		}
+	}
+
 	if (fromNode.topNotFree) {
 		fromNode.bottomNotFree = true;
 		fromNode.bottomReachingSegment = reachingSegment;
@@ -458,8 +508,21 @@ VineManager.prototype.updateReachData = function(timeDelta) {
 
 			var timeElapsed = segment.currentTime - segment.startTime;
 
+			segment.vector.x = segment.vector.x / Math.sqrt(Math.pow(segment.vector.x, 2) + Math.pow(segment.vector.y, 2));
+			segment.vector.y = segment.vector.y / Math.sqrt(Math.pow(segment.vector.x, 2) + Math.pow(segment.vector.y, 2));
+
+			var goalVector = {x: segment.endPoint.x - segment.leadPoint.x, y: segment.endPoint.y - segment.leadPoint.y}
+			var distanceToGoal = Math.sqrt(Math.pow(goalVector.x, 2) + Math.pow(goalVector.y, 2));
+			var almostThere = distanceToGoal < 50;
+
+            if (almostThere) {
+            	turnAmount *= 50 / distanceToGoal;
+            }
+
 			if (timeElapsed > swivelDelay) {
-				if (segment.swivelingUp) {
+				var swivelUp = almostThere ? segment.swivelPercent > 0 : segment.swivelingUp;
+
+				if (swivelUp) {
 					segment.swivelPercent += swivelSpeed * timeDelta;
 					if (segment.swivelPercent > 1) {
 						segment.swivelingUp = false;
@@ -472,20 +535,29 @@ VineManager.prototype.updateReachData = function(timeDelta) {
 						segment.swivelPercent *= -1;
 					}
 				}
+
+				if (almostThere) {
+					var percent = segment.tinySwivelPercent - 0.5;
+					percent -= percent / distanceToGoal;
+					percent += 0.5;
+					segment.tinySwivelPercent = percent;
+					segment.tinySwivelDistance -= segment.tinySwivelDistance / distanceToGoal * 2;
+				} else {
+					segment.tinySwivelPercent = segment.swivelPercent;
+					segment.tinySwivelDistance = segment.swivelDistance;
+				}
 			}
-
-			segment.vector.x = segment.vector.x / Math.sqrt(Math.pow(segment.vector.x, 2) + Math.pow(segment.vector.y, 2));
-			segment.vector.y = segment.vector.y / Math.sqrt(Math.pow(segment.vector.x, 2) + Math.pow(segment.vector.y, 2));
-
-			var goalVector = {x: segment.endPoint.x - segment.leadPoint.x, y: segment.endPoint.y - segment.leadPoint.y}
-			var distanceToGoal = Math.sqrt(Math.pow(goalVector.x, 2) + Math.pow(goalVector.y, 2));
-
-            if (distanceToGoal < 50) {
-            	turnAmount *= 50 / distanceToGoal;
-            }
 
 			var goalDegrees = Math.atan2(goalVector.y, goalVector.x);
 			var currentDegrees = Math.atan2(segment.vector.y, segment.vector.x);
+
+			if (Math.abs((goalDegrees - 2 * Math.PI) - currentDegrees) < Math.abs(goalDegrees - currentDegrees)) {
+				goalDegrees -= 2 * Math.PI;
+			}
+
+			if (Math.abs((goalDegrees + 2 * Math.PI) - currentDegrees) < Math.abs(goalDegrees - currentDegrees)) {
+				goalDegrees += 2 * Math.PI;
+			}
 
 			var change = goalDegrees - currentDegrees;
 

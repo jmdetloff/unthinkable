@@ -27,7 +27,7 @@ InfoPanelView.prototype.showData = function(nodePop, vinePop, vineImmunity) {
 
 	this.nodePopLabel.text = "Cell Pop: " + nodePop;
 	this.vinePopLabel.text = "Vine Pop: " + vinePop;
-	this.vineImmunityLabel.text = "Vine Immunity: " + vineImmunity + "%";
+	this.vineImmunityLabel.text = "Vine Immunity: " + (100 - vineImmunity) + "%";
 
 	var margin = 20;
 	var xOffset = margin;

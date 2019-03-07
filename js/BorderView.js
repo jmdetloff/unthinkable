@@ -34,8 +34,5 @@ BorderView.prototype.drawAtPosition = function(ctx, x, y) {
 	ctx.fillRect(x, y, borderWidth, this.frame.height);
 	ctx.fillRect(x + this.frame.width - borderWidth, y, borderWidth, this.frame.height);
 	ctx.fillRect(x, y + this.frame.height - borderWidth, this.frame.width, borderWidth);
-
-
-
 	ctx.restore();
 }

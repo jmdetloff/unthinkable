@@ -59,6 +59,10 @@ function GameView(file, frame) {
 	directionsLabel.frame = {x: 0, y: frame.height - bottomOffset, width: frame.width, height: bottomOffset};
 	this.addSubview(directionsLabel);
 
+	var subFrame = {x: 0, y: 0, width: this.frame.width, height: this.frame.height};
+	this.vinesReachingView = new VinesReachingView(subFrame, this.vineManager);
+	this.addSubview(this.vinesReachingView);
+
 	for (var i = 0; i < this.gameData.nodes.length; i++) {
 		var gameDataNode = this.gameData.nodes[i];
 		var node = {x: gameDataNode.x, y: gameDataNode.y, size: gameDataNode.size};
@@ -103,6 +107,60 @@ function GameView(file, frame) {
 			}
 		}
 	};
+
+	this.vinesView = new VinesView(subFrame, this.vineManager, this.workers, this.gameData.enemies, this.enemies);
+	this.addSubview(this.vinesView);
+
+	if (this.gameData.message) {
+
+		var shownMessages = localStorage.getItem("shown_messages");
+		if (!shownMessages) {
+			shownMessages = new Array();
+		} else {
+			shownMessages = JSON.parse(shownMessages);
+		}
+		if (!shownMessages.includes(this.gameData.message)) {
+			shownMessages.push(this.gameData.message);
+			localStorage.setItem("shown_messages", JSON.stringify(shownMessages));
+
+			var xOffset = 20;
+			var yOffset = 20;
+
+			var panelWidth = this.frame.width * 0.7;
+
+			var messageLabel = new LabelView();
+			messageLabel.textColor = "white";
+			messageLabel.font = "25px DOSFont";
+			messageLabel.lineHeight = 25;
+			messageLabel.text = this.gameData.message;
+			messageLabel.lineWrap = true;
+			messageLabel.frame = {x: xOffset, y: yOffset, width: panelWidth - 40, height: messageLabel.height()};
+
+			yOffset += messageLabel.height() + 20;
+
+			var continueLabel = new LabelView();
+			continueLabel.textColor = "white";
+			continueLabel.font = "25px DOSFont";
+			continueLabel.lineHeight = 25;
+			continueLabel.text = "Space to continue";
+			continueLabel.frame = {x: xOffset, y: yOffset, width: panelWidth - 40, height: 25};
+
+			var panelHeight = messageLabel.height() + 40 + 45;
+			var panelFrame = {x: (this.frame.width - panelWidth) / 2, y: (this.frame.height - panelHeight) / 2, width: panelWidth, height: panelHeight};
+
+			var messagePanel = new BorderView(panelFrame);
+			messagePanel.backgroundColor = 'rgba(5, 14, 16, 1)';
+			messagePanel.addSubview(messageLabel);
+			messagePanel.addSubview(continueLabel);
+			this.addSubview(messagePanel);
+
+			this.messagePanel = messagePanel;
+
+			this.paused = true;
+		}
+	}
+
+	this.updateInfoPanel();
 };
 
 GameView.prototype = new View();
@@ -244,11 +302,14 @@ GameView.prototype.update = function(timeDelta) {
     this.updateInfoPanel();
 
     var ownsAllNodes = true;
+    var ownsAnyNodes = false;
     for (var i = 0; i < this.nodes.length; i++) {
     	var node = this.nodes[i];
     	node.view.selectionBox.dashFlicker = Math.floor(this.currentTime) % 2 == 0;
     	if (node.owner !== "player") {
     		ownsAllNodes = false;
+    	} else {
+    		ownsAnyNodes = true;
     	}
     }
 
@@ -268,6 +329,8 @@ GameView.prototype.update = function(timeDelta) {
 
     if (ownsAllNodes) {
     	this.showWinScreen();
+    } else if (!ownsAnyNodes) {
+    	this.showLoseScreen();
     }
 }
 
@@ -292,6 +355,15 @@ GameView.prototype.showWinScreen = function() {
 			localStorage.setItem("unlocked_files", JSON.stringify(unlockedFiles));
 		}
 	}
+}
+
+GameView.prototype.showLoseScreen = function() {
+	var width = this.frame.width * 0.7;
+	var height = this.frame.height * 0.16;
+	var frame = {x: (this.frame.width - width) / 2, y: (this.frame.height - height) / 2, width: width, height: height};
+	var winView = new LoseScreenView(frame);
+	winView.backgroundColor = this.winScreenBackgroundColor;
+	this.addSubview(winView);
 }
 
 GameView.prototype.nextFile = function() {
@@ -331,8 +403,15 @@ GameView.prototype.performEnemyMove = function(enemy) {
 	}
 
 	if (!nodeToAttack) {
-		var playerNodes = this.playerNodes();
-		nodeToAttack = playerNodes[Math.floor(Math.random() * playerNodes.length)];
+		var otherNodes = new Array();
+		for (var i = 0; i < this.nodes.length; i++) {
+			var node = this.nodes[i];
+			if (node.owner !== enemy) {
+				otherNodes.push(node);
+			}
+		}
+
+		nodeToAttack = otherNodes[Math.floor(Math.random() * otherNodes.length)];
 	}
 
 	var enemyNodes = this.enemyNodes(enemy.name);
@@ -494,16 +573,18 @@ GameView.prototype.arriveAtNode = function(worker, node) {
 					numKills++;
 				}
 			} else {
-				var immunity = node.workers[0].immunity;
-				numKills = 50 / immunity;
-				if (numKills < 1) {
-					numKills = Math.random() < numKills ? 1 : 0;
+				if (node.owner === "player") {
+					var immunity = node.workers[0].immunity;
+					numKills = 50 / immunity;
+					if (numKills < 1) {
+						numKills = Math.random() < numKills ? 1 : 0;
+					} else {
+						numKills = Math.floor(numKills);
+					}
 				} else {
-					numKills = Math.floor(numKills);
+					numKills = 1;
 				}
 			}
-
-			console.log(numKills);
 
 			this.deleteWorker(worker);
 			for (var i = 0; i < numKills && node.workers.length; i++) {
@@ -535,7 +616,7 @@ GameView.prototype.spawnWorkers = function() {
 		var node = this.nodes[i];
 		if (node.owner) {
 			var vine = this.vineManager.vineForNode(node);
-			var preventSpawn = vine && vine.mutating;
+			var preventSpawn = vine && vine.mutating && node.owner === "player";
 			var maxSpawn = Math.floor(node.size / 2);
 			if (!preventSpawn && node.workers.length < maxSpawn && node.lastSpawn < this.currentTime - kSpawnTime) {
 				this.createWorker(node);
@@ -614,39 +695,24 @@ GameView.prototype.randomLocationOnNode = function(node) {
 
 GameView.prototype.togglePause = function() {
 	this.paused = !this.paused;
+	if (this.messagePanel) {
+		this.removeSubview(this.messagePanel);
+		this.messagePanel = null;
+	}
+}
+
+GameView.prototype.renderHierarchy = function(ctx, x, y) {
+	View.prototype.renderHierarchy.call(this, ctx, x, y);
 }
 
 GameView.prototype.drawAtPosition = function(ctx, x, y) {
-	this.vineManager.drawVineReachSegments(ctx, x, y);
-	
-	this.vineManager.drawVineNodeSegments(ctx, x, y, this.frame);
+	View.prototype.drawAtPosition.call(this, ctx, x, y);
 
 	var totalPop = this.workers.length;
 
-	ctx.save();
-
-	ctx.fillStyle = 'green';
-
-	for (var i = 0; i < this.workers.length; i++) {
-		var worker = this.workers[i];
-		ctx.fillRect(worker.location.x, worker.location.y, 4, 4);
-	}
-
-	ctx.restore();
-
 	for (var i = 0; i < this.gameData.enemies.length; i++) {
-		ctx.save();
-		ctx.fillStyle = this.gameData.enemies[i];
-
 		var enemy = this.enemies[this.gameData.enemies[i]];
-		for (var j = 0; j < enemy.workers.length; j++) {
-			var worker = enemy.workers[j];
-			ctx.fillRect(worker.location.x, worker.location.y, 4, 4);
-		}
-
 		totalPop += enemy.workers.length;
-
-		ctx.restore();
 	}
 
 	var percentPlayer = this.workers.length / totalPop;
@@ -673,6 +739,4 @@ GameView.prototype.drawAtPosition = function(ctx, x, y) {
 
 		offset += enemyWidth;
 	}
-
-	View.prototype.drawAtPosition.call(this, ctx, x, y);
 }

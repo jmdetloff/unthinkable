@@ -1,5 +1,10 @@
 const kCommandLineBottomMargin = 100;
 
+var parentDirectory = false;
+
+var devMode = true;
+var levelCreator = false;
+
 function BootSequenceView(delegate) {
 	this.delegate = delegate;
 	this.labels = Array();
@@ -15,7 +20,10 @@ function BootSequenceView(delegate) {
 
 	this.scrollOffset = 0;
 
-	localStorage.clear();
+	this.commands = new Array();
+	this.commandIndex = 0;
+
+	// localStorage.clear();
 };
 
 BootSequenceView.prototype = new View();
@@ -100,10 +108,6 @@ BootSequenceView.prototype.endBootSequence = function() {
 	this.xOffset = 0;
 	this.yOffset += 50;
 	this.addCommandLine();
-	// var bootSequenceView = this;
-	// setTimeout(function() {
-	// 	bootSequenceView.typeCommand("ls");
-	// }, 1500)
 }
 
 BootSequenceView.prototype.addCommandLine = function() {
@@ -169,31 +173,14 @@ BootSequenceView.prototype.addCommandLine = function() {
 	this.readyForInput = true;
 }
 
-BootSequenceView.prototype.typeCommand = function(command) {
-	this.typing = true;
-	this.cursor.hidden = true;
-
-	var characterIndex = 0;
-	var bootSequenceView = this;
-	var typeInterval = setInterval(function() {
-		if (characterIndex >= command.length) {
-			bootSequenceView.typing = false;
-			clearInterval(typeInterval);
-			return;
-		}
-		if (characterIndex > 0) {
-			bootSequenceView.xOffset -= bootSequenceView.inputLabel.width();
-		}
-		bootSequenceView.inputLabel.text = command.substring(-1, characterIndex + 1);
-		bootSequenceView.xOffset += bootSequenceView.inputLabel.width();
-		characterIndex++;
-	}, 150);
-}
-
 BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 	if (!this.readyForInput || event.type != "keydown") {
 		return;
 	}
+
+	if (event.keyCode === 9) {
+        event.preventDefault();
+    }
 
 	if (this.lessView) {
 		if (event.keyCode == 38) {
@@ -224,6 +211,23 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 		return;
 	}
 
+	if (this.levelCreatorView) {
+		if (event.keyCode == 81) {
+			this.removeSubview(this.levelCreatorView);
+			this.levelCreatorView = null;
+		} else if (event.keyCode == 82) {
+			this.removeSubview(this.levelCreatorView);
+			this.levelCreatorView = null;
+			var frame = {x: 0, y: 0, width: this.frame.width, height: this.frame.height};
+			var levelCreatorView = new LevelCreatorView(frame);
+			levelCreatorView.backgroundColor = this.backgroundColor;
+			levelCreatorView.backgroundColor = "#272822";
+			this.addSubview(levelCreatorView);
+			this.levelCreatorView = levelCreatorView;
+		}
+		return;
+	}
+
 	if (this.promptingForKeyFile) {
 		if (event.keyCode == 13) {
 			if (this.promptIsUnlocked && this.inputLabel.text === this.promptingForKeyFile.key) {
@@ -239,30 +243,122 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 			this.addCorrectCharacterToPasscodeInput();
 			return;
 		}
+
+		if (this.eventCodeIsInput()) {
+			this.insertKey(event.key);
+		} else if (event.keyCode == 8) {
+			this.deleteKey();
+		}
+		return;
+	}
+
+	// up/down
+	if (event.keyCode == 38) {
+		if (this.commandIndex > 0) {
+			this.commandIndex--;
+		}
+		this.insertCommand(this.commands[this.commandIndex]);
+		return;
+	} else if (event.keyCode == 40) {
+		if (this.commandIndex < this.commands.length) {
+			this.commandIndex++;
+		}
+		if (this.commandIndex == this.commands.length) {
+			this.insertCommand("");
+		} else {
+			this.insertCommand(this.commands[this.commandIndex]);
+		}
+		return;
+	}
+
+	if (levelCreator && event.keyCode == 49) {
+		var frame = {x: 0, y: 0, width: this.frame.width, height: this.frame.height};
+		var levelCreatorView = new LevelCreatorView(frame);
+		levelCreatorView.backgroundColor = this.backgroundColor;
+		levelCreatorView.backgroundColor = "#272822";
+		this.addSubview(levelCreatorView);
+		this.levelCreatorView = levelCreatorView;
+		return;
 	}
 
 	if (this.eventCodeIsInput()) {
-		if (this.inputLabel.text && this.inputLabel.text.length > 0) {
-			this.xOffset -= this.inputLabel.width();
-		}
-		if (this.inputLabel.text) {
-			this.inputLabel.text = this.inputLabel.text + event.key;
-		} else {
-			this.inputLabel.text = event.key;
-		}
-		this.xOffset += this.inputLabel.width();
-		this.cursor.frame = {x: this.xOffset, y: this.inputLabel.frame.y, width: 0, height: 0};
+		this.insertKey(event.key);
+
 	} else if (event.keyCode == 8) {
-		if (this.inputLabel.text && this.inputLabel.text.length > 0) {
-			this.xOffset -= this.inputLabel.width();
-			this.inputLabel.text = this.inputLabel.text.substring(-1, this.inputLabel.text.length - 1);
+		this.deleteKey();
+
+	} else if (event.keyCode == 13) {
+		this.enterCommand(this.inputLabel.text);
+	} else if (event.keyCode == 9) {
+		this.tabTapped();
+	}
+	View.prototype.keysUpdated.call(this, keysDown, event);
+}
+
+BootSequenceView.prototype.tabTapped = function() {
+	var command = this.inputLabel.text;
+	command = command.trim();
+	if (command && (command.startsWith("less ") || command === "less" || command.startsWith("run ") || command === "run")) {
+		var otherText = command.split(" ");
+		otherText.shift();
+		otherText = otherText.join(" ").toLowerCase();
+
+		if (!otherText) {
+			this.printUnlockedFiles();
+			return;
+		}
+
+		var files = this.unlockedFiles();
+		var matchingFiles = new Array();
+		for (var i = 0; i < files.length; i++) {
+			var filename = files[i];
+			if (filename.toLowerCase().startsWith(otherText)) {
+				var toAdd = filename.toLowerCase().substring(otherText.length);
+				matchingFiles.push(toAdd);
+			}
+		}
+
+		if (matchingFiles.length == 1) {
+			if (this.inputLabel.text && this.inputLabel.text.length > 0) {
+				this.xOffset -= this.inputLabel.width();
+			}
+			this.inputLabel.text += matchingFiles[0];
 			this.xOffset += this.inputLabel.width();
 			this.cursor.frame = {x: this.xOffset, y: this.inputLabel.frame.y, width: 0, height: 0};
 		}
-	} else if (event.keyCode == 13) {
-		this.enterCommand(this.inputLabel.text);
+
 	}
-	View.prototype.keysUpdated.call(this, keysDown, event);
+}
+
+BootSequenceView.prototype.insertKey = function(key) {
+	if (this.inputLabel.text && this.inputLabel.text.length > 0) {
+		this.xOffset -= this.inputLabel.width();
+	}
+	if (this.inputLabel.text) {
+		this.inputLabel.text = this.inputLabel.text + key;
+	} else {
+		this.inputLabel.text = event.key;
+	}
+	this.xOffset += this.inputLabel.width();
+	this.cursor.frame = {x: this.xOffset, y: this.inputLabel.frame.y, width: 0, height: 0};
+}
+
+BootSequenceView.prototype.deleteKey = function() {
+	if (this.inputLabel.text && this.inputLabel.text.length > 0) {
+		this.xOffset -= this.inputLabel.width();
+		this.inputLabel.text = this.inputLabel.text.substring(-1, this.inputLabel.text.length - 1);
+		this.xOffset += this.inputLabel.width();
+		this.cursor.frame = {x: this.xOffset, y: this.inputLabel.frame.y, width: 0, height: 0};
+	}
+}
+
+BootSequenceView.prototype.insertCommand = function(command) {
+	if (this.inputLabel.text && this.inputLabel.text.length > 0) {
+		this.xOffset -= this.inputLabel.width();
+	}
+	this.inputLabel.text = command;
+	this.xOffset += this.inputLabel.width();
+	this.cursor.frame = {x: this.xOffset, y: this.inputLabel.frame.y, width: 0, height: 0};
 }
 
 BootSequenceView.prototype.eventCodeIsInput = function(code) {
@@ -271,6 +367,11 @@ BootSequenceView.prototype.eventCodeIsInput = function(code) {
 }
 
 BootSequenceView.prototype.enterCommand = function(command) {
+	command = command.trim();
+
+	this.commands.push(command);
+	this.commandIndex = this.commands.length;
+
 	if (command === "ls") {
 		this.printUnlockedFiles();
 	} else if (command === "help") {
@@ -287,20 +388,7 @@ BootSequenceView.prototype.enterCommand = function(command) {
 BootSequenceView.prototype.printUnlockedFiles = function() {
 	this.yOffset += 40;
 
-	var unlockedFiles = localStorage.getItem("unlocked_files");
-	if (!unlockedFiles) {
-		unlockedFiles = Array();
-	} else {
-		unlockedFiles = JSON.parse(unlockedFiles);
-	}
-
-	var fileNames = Array();
-	for (var i = 0; i < kFiles.length; i++) {
-		var file = kFiles[i];
-		if (!file.key || unlockedFiles.indexOf(file.name.toLowerCase()) != -1) {
-			fileNames.push(file.name);
-		}
-	}
+	var fileNames = this.unlockedFiles();
 
 	var filesLabel = new LabelView();
 	filesLabel.lineWrap = true;
@@ -314,6 +402,25 @@ BootSequenceView.prototype.printUnlockedFiles = function() {
 	this.yOffset += filesLabel.height() + 20;
 
 	this.addCommandLine();
+}
+
+BootSequenceView.prototype.unlockedFiles = function() {
+	var unlockedFiles = localStorage.getItem("unlocked_files");
+	if (!unlockedFiles) {
+		unlockedFiles = Array();
+	} else {
+		unlockedFiles = JSON.parse(unlockedFiles);
+	}
+
+	var fileNames = Array();
+	for (var i = 0; i < kFiles.length; i++) {
+		var file = kFiles[i];
+		if (!file.key || unlockedFiles.indexOf(file.name.toLowerCase()) != -1 || devMode) {
+			fileNames.push(file.name);
+		}
+	}
+
+	return fileNames;
 }
 
 BootSequenceView.prototype.lessFile = function(command) {
@@ -385,7 +492,7 @@ BootSequenceView.prototype.promptForKey = function(fileToOpen) {
 	}
 
 	this.promptingForKeyFile = fileToOpen;
-	this.promptIsUnlocked = unlockedFiles.indexOf(fileToOpen.name.toLowerCase()) > -1
+	this.promptIsUnlocked = unlockedFiles.indexOf(fileToOpen.name.toLowerCase()) > -1 || devMode
 }
 
 BootSequenceView.prototype.lessUnlockedFile = function(fileToOpen) {
@@ -461,6 +568,7 @@ BootSequenceView.prototype.runUnlockedFile = function(fileToOpen) {
 
 	var frame = {x: 0, y: 0, width: this.frame.width, height: this.frame.height};
 	var gameView = new GameView(fileToOpen, frame);
+	gameView.backgroundColor = this.backgroundColor;
 	gameView.winScreenBackgroundColor = this.backgroundColor;
 	this.gameContainer.addSubview(gameView);
 	this.gameView = gameView;

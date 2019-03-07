@@ -16,7 +16,11 @@ NodeView.prototype.drawAtPosition = function(ctx, x, y) {
 	ctx.save();
 
 	ctx.strokeStyle = 'white';
-	ctx.fillStyle = 'rgba(5, 14, 16, 1)';
+	if (this.backgroundColor) {
+		ctx.fillStyle = this.backgroundColor;
+	} else {
+		ctx.fillStyle = 'rgba(5, 14, 16, 1)';	
+	}
 	ctx.lineWidth = 3;
 
 	ctx.beginPath();
@@ -32,9 +36,7 @@ NodeView.prototype.drawAtPosition = function(ctx, x, y) {
 	ctx.closePath();
 	
 	ctx.stroke();
-	// ctx.fill();
+	ctx.fill();
 
 	ctx.restore();
-
-	View.prototype.drawAtPosition.call(this, ctx, x, y);
 }
