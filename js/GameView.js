@@ -95,6 +95,10 @@ function GameView(file, frame) {
 	};
 	this.onMouseUp = function(x, y) {
 		var upNode = gameView.nodeAtPoint(x, y);
+		if (gameView.hoverNode) {
+			gameView.hoverNode.view.selectionBox.hidden = true;
+			gameView.hoverNode = null;
+		}
 		if (upNode) {
 			gameView.nodeOnMouseUp(upNode);
 		} else {
@@ -110,6 +114,20 @@ function GameView(file, frame) {
 			}
 		}
 	};
+	this.onMouseMove = function(x, y) {
+		if (!gameView.selectedNode) {
+			return;
+		}
+		if (gameView.hoverNode && gameView.hoverNode != gameView.selectedNode) {
+			gameView.hoverNode.view.selectionBox.hidden = true;
+		}
+		gameView.hoverNode = null;
+		var hoverNode = gameView.nodeAtPoint(x, y);
+		if (hoverNode && hoverNode != gameView.selectedNode) {
+			gameView.hoverNode = hoverNode;
+			gameView.hoverNode.view.selectionBox.hidden = false;
+		}
+	}
 
 	this.vinesView = new VinesView(subFrame, this.vineManager, this.workers, this.gameData.enemies, this.enemies);
 	this.addSubview(this.vinesView);
@@ -335,6 +353,10 @@ GameView.prototype.update = function(timeDelta) {
     } else if (!ownsAnyNodes) {
     	this.showLoseScreen();
     }
+
+ //    if (this.currentTime > 5) {
+ //   		this.showWinScreen();
+	// }
 }
 
 GameView.prototype.showWinScreen = function() {

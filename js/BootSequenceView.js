@@ -2,7 +2,7 @@ const kCommandLineBottomMargin = 100;
 
 var parentDirectory = false;
 
-var devMode = true;
+var devMode = false;
 var levelCreator = false;
 var parentDirectory = false;
 var secretDirectory = false;
@@ -188,14 +188,16 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 		return;
 	}
 
-	if (event.keyCode === 9) {
+	if (event.keyCode == 9 || event.keyCode == 32 || event.keyCode == 8) {
         event.preventDefault();
     }
 
 	if (this.lessView) {
 		if (event.keyCode == 38) {
+			event.preventDefault();
 			this.lessView.scrollUp();
 		} else if (event.keyCode == 40) {
+			event.preventDefault();
 			this.lessView.scrollDown();
 		} else if (event.keyCode == 81) {
 			this.removeSubview(this.lessView);
@@ -240,7 +242,8 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 
 	if (this.promptingForKeyFile) {
 		if (event.keyCode == 13) {
-			if (this.promptIsUnlocked && this.inputLabel.text === this.promptingForKeyFile.key) {
+			if (this.promptIsUnlocked || this.inputLabel.text === this.promptingForKeyFile.key) {
+				this.unlockFile(this.promptingForKeyFile);
 				this.validPasscodeEntered();
 				return;
 			} else if (!this.promptIsUnlocked) {
@@ -254,7 +257,7 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 			return;
 		}
 
-		if (this.eventCodeIsInput()) {
+		if (this.eventCodeIsInput(event)) {
 			this.insertKey(event.key);
 		} else if (event.keyCode == 8) {
 			this.deleteKey();
@@ -264,12 +267,14 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 
 	// up/down
 	if (event.keyCode == 38) {
+		event.preventDefault();
 		if (this.commandIndex > 0) {
 			this.commandIndex--;
+			this.insertCommand(this.commands[this.commandIndex]);
 		}
-		this.insertCommand(this.commands[this.commandIndex]);
 		return;
 	} else if (event.keyCode == 40) {
+		event.preventDefault();
 		if (this.commandIndex < this.commands.length) {
 			this.commandIndex++;
 		}
@@ -291,7 +296,7 @@ BootSequenceView.prototype.keysUpdated = function(keysDown, event) {
 	// 	return;
 	// }
 
-	if (this.eventCodeIsInput()) {
+	if (this.eventCodeIsInput(event)) {
 		this.insertKey(event.key);
 
 	} else if (event.keyCode == 8) {
@@ -347,7 +352,7 @@ BootSequenceView.prototype.insertKey = function(key) {
 	if (this.inputLabel.text) {
 		this.inputLabel.text = this.inputLabel.text + key;
 	} else {
-		this.inputLabel.text = event.key;
+		this.inputLabel.text = key;
 	}
 	this.xOffset += this.inputLabel.width();
 	this.cursor.frame = {x: this.xOffset, y: this.inputLabel.frame.y, width: 0, height: 0};
@@ -371,9 +376,9 @@ BootSequenceView.prototype.insertCommand = function(command) {
 	this.cursor.frame = {x: this.xOffset, y: this.inputLabel.frame.y, width: 0, height: 0};
 }
 
-BootSequenceView.prototype.eventCodeIsInput = function(code) {
+BootSequenceView.prototype.eventCodeIsInput = function(event) {
 	// numbers, letters, space, period, underscore
-	return (event.keyCode >= 48 && event.keyCode <= 57) || (event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode == 32 || event.keyCode == 190 || event.keyCode == 189 || event.keyCode == 191;
+	return (event.keyCode >= 48 && event.keyCode <= 57) || (event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode == 32 || event.keyCode == 190 || event.keyCode == 189 || event.keyCode == 191 || event.keyCode == 173;
 }
 
 BootSequenceView.prototype.enterCommand = function(command) {
@@ -495,6 +500,19 @@ BootSequenceView.prototype.unlockedFiles = function() {
 	}
 
 	return fileNames;
+}
+
+BootSequenceView.prototype.unlockFile = function(file) {
+	var unlockedFiles = localStorage.getItem("unlocked_files");
+	if (!unlockedFiles) {
+		unlockedFiles = Array();
+	} else {
+		unlockedFiles = JSON.parse(unlockedFiles);
+	}
+	if (!unlockedFiles.includes(file.name.toLowerCase())) {
+		unlockedFiles.push(file.name.toLowerCase());
+		localStorage.setItem("unlocked_files", JSON.stringify(unlockedFiles));
+	}
 }
 
 BootSequenceView.prototype.lessFile = function(command) {

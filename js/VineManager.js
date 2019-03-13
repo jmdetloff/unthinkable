@@ -387,9 +387,9 @@ VineManager.prototype.startReaching = function(vine, fromNode, toNode, currentTi
 	var toNodeExit = {x: toNode.view.frame.x + kNodeExitPoint.x * toNode.size, y: toNode.view.frame.y + kNodeExitPoint.y * toNode.size};
 
 	for (var i = 0; i < this.vines.length; i++) {
-		var vine = this.vines[i];
-		for (var j = 0; j < vine.path.length; j++) {
-			var pathSegment = vine.path[j];
+		var vineCheck = this.vines[i];
+		for (var j = 0; j < vineCheck.path.length; j++) {
+			var pathSegment = vineCheck.path[j];
 			if (pathSegment.type === "reach" && !pathSegment.completed) {
 				if (pathSegment.toNode === toNode) {
 					return;
