@@ -651,9 +651,64 @@ const kGameData = {
 		"mutateDisabled" : false,
 		"enemies":["#ee4035"]
 	},
-	"sample12.jek" : {"nodes":[{"x":0.42,"y":0.4075,"size":140,"vine":true},{"x":0.182,"y":0.44125,"size":80},{"x":0.693,"y":0.43625,"size":80},{"x":0.3,"y":0.25875,"size":60},{"x":0.593,"y":0.255,"size":60},{"x":0.456,"y":0.27375,"size":40},{"x":0.477,"y":0.70875,"size":40},{"x":0.593,"y":0.68875,"size":80},{"x":0.278,"y":0.69625,"size":80},{"x":0.078,"y":0.20625,"size":40,"enemy":"#ee4035"},{"x":0.861,"y":0.18875,"size":40,"enemy":"#ee4035"},{"x":0.86,"y":0.8325,"size":40,"enemy":"#ee4035"},{"x":0.096,"y":0.84375,"size":40,"enemy":"#ee4035"}],"mutateDisabled":false,"enemies":["#ee4035"]},
-	"sample13.jek" : {"nodes":[{"x":0.036,"y":0.11,"size":100,"vine":true},{"x":0.204,"y":0.115,"size":60},{"x":0.164,"y":0.24625,"size":60},{"x":0.024,"y":0.31375,"size":80},{"x":0.125,"y":0.34625,"size":40},{"x":0.248,"y":0.20875,"size":40},{"x":0.724,"y":0.72125,"size":160,"enemy":"#ee4035"},{"x":0.783,"y":0.5225,"size":120,"enemy":"#ee4035"},{"x":0.495,"y":0.76625,"size":140,"enemy":"#ee4035"},{"x":0.296,"y":0.09875,"size":60},{"x":0.218,"y":0.6425,"size":80},{"x":0.368,"y":0.4425,"size":100},{"x":0.519,"y":0.3,"size":60}],"mutateDisabled":false,"enemies":["#ee4035"]},
-	"sample14.jek" : {"nodes":[{"x":0.409,"y":0.4075,"size":160},{"x":0.632,"y":0.48,"size":40,"enemy":"#ee4035"},{"x":0.594,"y":0.3275,"size":40},{"x":0.466,"y":0.25125,"size":40,"enemy":"#ee4035"},{"x":0.464,"y":0.66,"size":40,"enemy":"#ee4035"},{"x":0.348,"y":0.63,"size":40},{"x":0.287,"y":0.49375,"size":40,"enemy":"#ee4035"},{"x":0.684,"y":0.6925,"size":100,"vine":true},{"x":0.197,"y":0.17625,"size":120,"vine":true},{"x":0.7,"y":0.10875,"size":120},{"x":0.126,"y":0.745,"size":120}],"mutateDisabled":false,"enemies":["#ee4035"]},
+	"sample12.jek" : {
+		"nodes":[
+			{"x":0.42,"y":0.4075,"size":140,"vine":true},
+			{"x":0.182,"y":0.44125,"size":80},
+			{"x":0.693,"y":0.43625,"size":80},
+			{"x":0.3,"y":0.25875,"size":60},
+			{"x":0.593,"y":0.255,"size":60},
+			{"x":0.456,"y":0.27375,"size":40},
+			{"x":0.477,"y":0.70875,"size":40},
+			{"x":0.593,"y":0.68875,"size":80},
+			{"x":0.278,"y":0.69625,"size":80},
+			{"x":0.078,"y":0.20625,"size":40,"enemy":"#ee4035"},
+			{"x":0.861,"y":0.18875,"size":40,"enemy":"#ee4035"},
+			{"x":0.86,"y":0.8325,"size":40,"enemy":"#ee4035"},
+			{"x":0.096,"y":0.84375,"size":40,"enemy":"#ee4035"}
+		],
+		"message" : "To avoid a long wait while mutation occurs, break long vines into smaller sections with purge before mutating.",
+		"mutateDisabled":false,
+		"enemies":["#ee4035"]
+	},
+	"sample13.jek" : {
+		"nodes":[
+			{"x":0.036,"y":0.11,"size":100,"vine":true},
+			{"x":0.204,"y":0.115,"size":60},
+			{"x":0.164,"y":0.24625,"size":60},
+			{"x":0.024,"y":0.31375,"size":80},
+			{"x":0.125,"y":0.34625,"size":40},
+			{"x":0.248,"y":0.20875,"size":40},
+			{"x":0.724,"y":0.72125,"size":160,"enemy":"#ee4035"},
+			{"x":0.783,"y":0.5225,"size":120,"enemy":"#ee4035"},
+			{"x":0.495,"y":0.76625,"size":140,"enemy":"#ee4035"},
+			{"x":0.296,"y":0.09875,"size":60},
+			{"x":0.218,"y":0.6425,"size":80},
+			{"x":0.368,"y":0.4425,"size":100},
+			{"x":0.519,"y":0.3,"size":60}
+		],
+		"message": "Don't let immunity snowball. It's wise to keep at least one small vine mutating at all times. When one finishes, you can purge an older vine and let the fresh vine grow into its place.",
+		"mutateDisabled":false,
+		"enemies":["#ee4035"]
+	},
+	"sample14.jek" : {
+		"nodes":[
+			{"x":0.409,"y":0.4075,"size":160},
+			{"x":0.632,"y":0.48,"size":40,"enemy":"#ee4035"},
+			{"x":0.594,"y":0.3275,"size":40},
+			{"x":0.466,"y":0.25125,"size":40,"enemy":"#ee4035"},
+			{"x":0.464,"y":0.66,"size":40,"enemy":"#ee4035"},
+			{"x":0.348,"y":0.63,"size":40},
+			{"x":0.287,"y":0.49375,"size":40,"enemy":"#ee4035"},
+			{"x":0.684,"y":0.6925,"size":100,"vine":true},
+			{"x":0.197,"y":0.17625,"size":120,"vine":true},
+			{"x":0.7,"y":0.10875,"size":120},
+			{"x":0.126,"y":0.745,"size":120}
+		],
+		"message" : "Don't underestimate the advantage of a freshly mutated vine. At 0% immunity vine units do double damage.",
+		"mutateDisabled":false,
+		"enemies":["#ee4035"]
+	},
 	"sample15.jek" : {"nodes":[{"x":0.125,"y":0.2725,"size":40,"vine":true},{"x":0.239,"y":0.22625,"size":40},{"x":0.371,"y":0.1825,"size":80,"enemy":"#ee4035"},{"x":0.525,"y":0.325,"size":40},{"x":0.558,"y":0.47375,"size":40},{"x":0.45,"y":0.62625,"size":80,"enemy":"#ee4035"},{"x":0.523,"y":0.83375,"size":40},{"x":0.724,"y":0.84625,"size":40},{"x":0.817,"y":0.66375,"size":60,"vine":true},{"x":0.214,"y":0.69125,"size":60},{"x":0.249,"y":0.48375,"size":60},{"x":0.374,"y":0.37875,"size":40},{"x":0.669,"y":0.28125,"size":80,"enemy":"#ee4035"},{"x":0.841,"y":0.22,"size":40},{"x":0.09,"y":0.84,"size":40}],"mutateDisabled":false,"enemies":["#ee4035"]},
 	"sample16.jek" : {"nodes":[{"x":0.4,"y":0.40375,"size":140,"vine":true},{"x":0.514,"y":0.31625,"size":80},{"x":0.618,"y":0.24125,"size":60},{"x":0.727,"y":0.2425,"size":40},{"x":0.827,"y":0.24375,"size":40,"enemy":"#ee4035"},{"x":0.474,"y":0.585,"size":100},{"x":0.563,"y":0.7075,"size":80},{"x":0.687,"y":0.71125,"size":60},{"x":0.725,"y":0.61,"size":60},{"x":0.771,"y":0.5325,"size":40},{"x":0.871,"y":0.52625,"size":40},{"x":0.229,"y":0.50625,"size":140},{"x":0.167,"y":0.63625,"size":60},{"x":0.087,"y":0.72375,"size":80},{"x":0.165,"y":0.8225,"size":60},{"x":0.258,"y":0.8125,"size":40,"enemy":"#ee4035"},{"x":0.289,"y":0.2975,"size":80},{"x":0.203,"y":0.21125,"size":80},{"x":0.084,"y":0.225,"size":80},{"x":0.033,"y":0.35,"size":60,"enemy":"#ee4035"},{"x":0.322,"y":0.13875,"size":60},{"x":0.42,"y":0.13125,"size":40,"enemy":"#ee4035"}],"mutateDisabled":false,"enemies":["#ee4035"]},
 	"sample17.jek" : {"nodes":[{"x":0.469,"y":0.4625,"size":40},{"x":0.542,"y":0.52875,"size":60},{"x":0.377,"y":0.37375,"size":60},{"x":0.515,"y":0.3225,"size":100},{"x":0.366,"y":0.54125,"size":100},{"x":0.261,"y":0.235,"size":80,"enemy":"#ee4035"},{"x":0.664,"y":0.64375,"size":80,"enemy":"#ee4035"},{"x":0.182,"y":0.7025,"size":140, "vine": true},{"x":0.66,"y":0.13875,"size":140,"enemy":"#ee4035"},{"x":0.192,"y":0.45875,"size":80},{"x":0.738,"y":0.45375,"size":80},{"x":0.432,"y":0.17125,"size":80},{"x":0.452,"y":0.72875,"size":100}],"mutateDisabled":false,"enemies":["#ee4035"]},

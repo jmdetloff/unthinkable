@@ -311,7 +311,7 @@ VineManager.prototype.drawNodeVineSegment = function(ctx, x, y, segment, frame, 
 
 VineManager.prototype.createVine = function(node) {
 	node.bottomNotFree = true;
-	var newVine = { path: [ this.generateNodeSegment(node) ], color: "green", immunity: 50 }
+	var newVine = { path: [ this.generateNodeSegment(node) ], color: "green", immunity: 75 }
 	this.vines.push(newVine);
 }
 
